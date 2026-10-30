@@ -39,23 +39,35 @@ export async function proxy(req: NextRequest) {
   entetes.set("Content-Security-Policy", csp);
 
   let res = NextResponse.next({ request: { headers: entetes } });
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-      getAll: () => req.cookies.getAll(),
-      setAll: (list: CookieList) => {
-        list.forEach(({ name, value }) => req.cookies.set(name, value));
-        res = NextResponse.next({ request: { headers: entetes } });
-        list.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
-      },
-    },
-  });
-  const { data: { user } } = await supabase.auth.getUser();
+  // Sans configuration Supabase ou si Supabase ne répond pas, le visiteur est traité comme
+  // non connecté : le site public reste affiché au lieu d'une erreur 500 sur toutes les pages.
+  let connecte = false;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const cle = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (url && cle) {
+    try {
+      const supabase = createServerClient(url, cle, {
+        cookies: {
+          getAll: () => req.cookies.getAll(),
+          setAll: (list: CookieList) => {
+            list.forEach(({ name, value }) => req.cookies.set(name, value));
+            res = NextResponse.next({ request: { headers: entetes } });
+            list.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+          },
+        },
+      });
+      const { data: { user } } = await supabase.auth.getUser();
+      connecte = Boolean(user);
+    } catch {
+      connecte = false;
+    }
+  }
 
-  if (!user && ESPACE_CONNECTE.some((p) => req.nextUrl.pathname.startsWith(p))) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/connexion";
-    url.search = "";
-    return NextResponse.redirect(url);
+  if (!connecte && ESPACE_CONNECTE.some((p) => req.nextUrl.pathname.startsWith(p))) {
+    const cible = req.nextUrl.clone();
+    cible.pathname = "/connexion";
+    cible.search = "";
+    return NextResponse.redirect(cible);
   }
   res.headers.set("Content-Security-Policy", csp);
   return res;
