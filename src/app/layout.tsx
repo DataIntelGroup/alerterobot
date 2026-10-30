@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Sora } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 
 // Polices téléchargées au build et servies par le site : aucune requête vers Google
 // depuis le navigateur, la CSP (font-src 'self') reste stricte.
-const inter = Inter({ subsets: ["latin"], variable: "--police-texte", display: "swap" });
-const sora = Sora({ subsets: ["latin"], weight: ["600", "700"], variable: "--police-titre", display: "swap" });
+// Une seule famille, arrondie et lisible, pour les titres comme pour le texte ;
+// la chasse fixe est réservée à ce qu'on copie (commandes, adresses, extraits).
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--police-texte", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["500"], variable: "--police-mono", display: "swap" });
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Lire l'en-tête rend chaque page dynamique : indispensable pour un nonce CSP par requête.
   await headers();
   return (
-    <html lang="fr" className={`${inter.variable} ${sora.variable} ${mono.variable}`}>
+    <html lang="fr" className={`${jakarta.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

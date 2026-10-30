@@ -29,7 +29,7 @@ export function FormulairePage({ appUrl }: { appUrl: string }) {
             onChange={(e) => { setModifie(true); setSlug(e.target.value.toLowerCase()); }} aria-describedby="aide-slug" />
         </div>
       </div>
-      <p id="aide-slug" className="pale">Vos clients la consulteront ici : <span className="mono">{appUrl}/statut/{slug || "votre-adresse"}</span></p>
+      <p id="aide-slug" className="pale">Vos clients la consulteront ici : <span className="code">{appUrl}/statut/{slug || "votre-adresse"}</span></p>
       <button type="submit" className="bouton" disabled={enCours}>{enCours ? "Création…" : "Créer la page"}</button>
     </form>
   );

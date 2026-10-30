@@ -27,7 +27,7 @@ export function FormulaireWebhook() {
       <div className="pile">
         <p className="alerte succes">Webhook créé. Voici son secret de signature : copiez-le maintenant, il ne sera plus affiché.</p>
         <Copiable valeur={etat.secret} libelle="le secret" />
-        <p className="pale">Chaque envoi porte l&apos;en-tête <span className="mono">AlerteRobot-Signature: t=…,v1=…</span>. Recalculez HMAC-SHA256 de « t.corps » avec ce secret, et refusez un horodatage de plus de 5 minutes.</p>
+        <p className="pale">Chaque envoi porte l&apos;en-tête <span className="code">AlerteRobot-Signature: t=…,v1=…</span>. Recalculez HMAC-SHA256 de « t.corps » avec ce secret, et refusez un horodatage de plus de 5 minutes.</p>
       </div>
     );
   }
@@ -62,7 +62,7 @@ export function FormulaireTelegram({ robot }: { robot: string | null }) {
           <li>Rechargez cette page : le groupe apparaît dans la liste. Le lien est valable 15 minutes.</li>
         </ol>
         <a className="bouton" href={lien} target="_blank" rel="noopener noreferrer">Ouvrir Telegram</a>
-        <p className="pale">Sur ordinateur, vous pouvez aussi envoyer <span className="mono">/start {etat.code}</span> au robot dans le groupe.</p>
+        <p className="pale">Sur ordinateur, vous pouvez aussi envoyer <span className="code">/start {etat.code}</span> au robot dans le groupe.</p>
       </div>
     );
   }

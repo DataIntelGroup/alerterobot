@@ -73,11 +73,11 @@ export default async function PageIncident({ params }: { params: Promise<{ id: s
                   <div className="sonde-tete"><strong>{LIEUX[s.lieu] ?? s.lieu}</strong><span className="mono pale">{heure(s.le)}</span></div>
                   <p>{s.erreur ?? "Échec"}{s.code ? ` · code ${s.code}` : ""}</p>
                   <dl className="mesures">
-                    {d.ip && <><dt>Adresse contactée</dt><dd className="mono">{d.ip}</dd></>}
+                    {d.ip && <><dt>Adresse contactée</dt><dd className="code">{d.ip}</dd></>}
                     {d.dns_ms !== undefined && <><dt>Résolution DNS</dt><dd className="mono">{d.dns_ms} ms</dd></>}
                     {d.ttfb_ms !== undefined && <><dt>Première réponse</dt><dd className="mono">{d.ttfb_ms} ms</dd></>}
                     {d.redirections !== undefined && <><dt>Redirections</dt><dd className="mono">{d.redirections}</dd></>}
-                    {d.type_contenu && <><dt>Type de contenu</dt><dd className="mono">{d.type_contenu}</dd></>}
+                    {d.type_contenu && <><dt>Type de contenu</dt><dd className="code">{d.type_contenu}</dd></>}
                   </dl>
                   {d.extrait && <><p className="pale">Début de la page reçue :</p><pre className="extrait">{d.extrait}</pre></>}
                 </li>

@@ -33,7 +33,7 @@ export default async function PagesStatut() {
         return (
           <section key={p.client_id} className="carte pile" aria-label={`Page de ${p.nom}`}>
             <div className="carte-tete">
-              <div><h2>{p.nom}</h2><p className="pale mono">/statut/{p.slug}</p></div>
+              <div><h2>{p.nom}</h2><p className="pale code">/statut/{p.slug}</p></div>
               <Link className="bouton secondaire" href={`/statut/${p.slug}`} target="_blank" rel="noopener">Voir la page</Link>
             </div>
             <p className="pale">{p.abonnes} abonné{p.abonnes > 1 ? "s" : ""} confirmé{p.abonnes > 1 ? "s" : ""} · {affiches.length} service{affiches.length > 1 ? "s" : ""} affiché{affiches.length > 1 ? "s" : ""}</p>

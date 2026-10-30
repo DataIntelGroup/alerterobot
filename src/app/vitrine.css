@@ -1,9 +1,9 @@
 /* Page d'accueil (site vitrine), thème clair. Préfixe v- pour ne rien mélanger avec l'espace connecté. */
-.v { --titre: var(--police-titre, Sora), var(--police-texte, Inter), sans-serif; font-size: 16px; line-height: 1.55; }
+.v { font-size: 17px; line-height: 1.6; }
 .v-cadre { max-width: 1200px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 32px); }
-.v h1, .v h2 { font-family: var(--titre); letter-spacing: -0.02em; }
+.v h1, .v h2 { font-family: var(--titre); font-weight: 800; letter-spacing: -0.025em; }
 .v h3 { font-size: 17px; margin: 0 0 6px; }
-.v-sur { margin: 0 0 12px; font-family: var(--police-mono, monospace); font-size: 12px; letter-spacing: .12em; color: var(--vert-texte); text-transform: uppercase; }
+.v-sur { margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: .1em; color: var(--vert-texte); text-transform: uppercase; }
 .v-h2 { margin: 0; max-width: 760px; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.15; }
 .v-section { padding-top: clamp(64px, 9vw, 104px); }
 .v-texte { color: var(--doux); }
@@ -33,7 +33,7 @@
 /* Hero */
 .v-hero { display: flex; flex-wrap: wrap; gap: 48px; align-items: center; padding-block: clamp(48px, 7vw, 88px) 56px; }
 .v-hero-texte { flex: 1 1 460px; min-width: 0; }
-.v-badge { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 20px; font-size: 13px; color: var(--doux);
+.v-badge { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 20px; font-size: 14px; color: var(--doux);
   background: var(--surface); border: 1px solid var(--bord); border-radius: 999px; padding: 6px 12px; }
 .v-point { width: 8px; height: 8px; border-radius: 50%; background: var(--vert-vif); flex: none; }
 .v-point.ambre { background: var(--ambre-vif); } .v-point.rouge { background: var(--rouge-vif); }
@@ -44,7 +44,7 @@
   background: var(--surface); color: var(--texte); font: inherit; font-size: 15px; }
 .v-essai input::placeholder { color: #8a93a3; }
 .v-essai .bouton { height: 50px; }
-.v-petit { margin-top: 12px; font-size: 13px; color: var(--pale); max-width: 560px; }
+.v-petit { margin-top: 12px; font-size: 14px; color: var(--pale); max-width: 560px; }
 .v-preuves { margin: 28px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 14px; color: var(--doux); }
 .v-preuves li { display: flex; align-items: center; gap: 8px; }
 .v-preuves svg { color: var(--vert); }
@@ -57,13 +57,13 @@
 .v-moniteurs li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; }
 .v-moniteurs li.panne { background: var(--rouge-pale); border-color: var(--rouge-bord); font-weight: 600; }
 .v-moniteurs .nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.v-moniteurs .mesure { font-family: var(--police-mono, monospace); font-size: 12px; color: var(--pale); white-space: nowrap; font-weight: 400; }
+.v-moniteurs .mesure { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--pale); white-space: nowrap; font-weight: 400; }
 .v-moniteurs .mesure.rouge { color: var(--rouge); } .v-moniteurs .mesure.ambre { color: var(--ambre); }
 .v-graphe { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--bord); }
-.v-graphe-tete, .v-graphe-pied { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--pale); }
-.v-graphe-pied { font-family: var(--police-mono, monospace); font-size: 11px; margin-top: 6px; }
+.v-graphe-tete, .v-graphe-pied { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--pale); }
+.v-graphe-pied { font-variant-numeric: tabular-nums; font-size: 13px; margin-top: 6px; }
 .v-graphe svg { display: block; width: 100%; height: 56px; margin-top: 8px; }
-.v-notif { margin-top: 14px; display: flex; gap: 12px; padding: 14px; border-radius: 12px; background: var(--vert-pale); border: 1px solid var(--vert-bord); font-size: 13px; line-height: 1.5; }
+.v-notif { margin-top: 14px; display: flex; gap: 12px; padding: 14px; border-radius: 12px; background: var(--vert-pale); border: 1px solid var(--vert-bord); font-size: 14px; line-height: 1.5; }
 .v-notif svg { flex: none; margin-top: 2px; color: var(--vert); }
 .v-notif p { color: var(--doux); }
 
@@ -81,13 +81,13 @@
 .v-citation { margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between;
   padding: 20px 24px; border-radius: 14px; border: 1px dashed var(--bord-fort); background: var(--surface); }
 .v-citation blockquote { margin: 0; flex: 1 1 520px; }
-.v-citation figcaption { font-size: 13px; color: var(--pale); }
+.v-citation figcaption { font-size: 14px; color: var(--pale); }
 
 /* Étapes */
 .v-etapes { margin: 36px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   border: 1px solid var(--bord); border-radius: 14px; overflow: hidden; background: var(--surface); }
 .v-etapes li { padding: 24px; border-right: 1px solid var(--bord); border-bottom: 1px solid var(--bord); margin: 0 -1px -1px 0; }
-.v-etapes .num { font-family: var(--police-mono, monospace); font-size: 13px; color: var(--vert-texte); }
+.v-etapes .num { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--vert-texte); }
 .v-etapes h3 { margin-top: 14px; }
 .v-etapes p { color: var(--doux); font-size: 15px; }
 .v-titre-ligne { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 40px; }
@@ -100,7 +100,7 @@
 .v-bloc > div { flex: 1 1 400px; min-width: 0; }
 .v-bloc h2 { font-size: clamp(26px, 3.2vw, 36px); }
 .v-liste { margin: 24px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 15px; }
-.v-pastille { margin-top: 20px; display: inline-flex; gap: 8px; font-size: 13px; color: var(--doux); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; }
+.v-pastille { margin-top: 20px; display: inline-flex; gap: 8px; font-size: 14px; color: var(--doux); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; }
 .v-pastille strong { color: var(--vert-texte); }
 .v-chrono { margin: 0; padding: 0; list-style: none; }
 .v-chrono li { display: flex; gap: 14px; }
@@ -110,7 +110,7 @@
 .v-chrono li:last-child .rail::after { display: none; }
 .v-chrono .ambre { --couleur: var(--ambre-vif); } .v-chrono .rouge { --couleur: var(--rouge-vif); } .v-chrono .gris { --couleur: var(--ardoise); }
 .v-chrono .corps { padding-bottom: 16px; min-width: 0; }
-.v-chrono .heure { font-family: var(--police-mono, monospace); font-size: 13px; color: var(--pale); margin-right: 10px; }
+.v-chrono .heure { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--pale); margin-right: 10px; }
 .v-chrono strong { font-size: 15px; }
 .v-chrono p { color: var(--doux); font-size: 14px; margin-top: 2px; }
 .v-encart { margin-top: 4px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); font-size: 14px; color: var(--doux); }
@@ -123,7 +123,7 @@
 .v-rapport ul { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
 .v-rapport li > div { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
 .v-rapport svg { display: block; width: 100%; height: 6px; }
-.v-rapport .valeur { font-family: var(--police-mono, monospace); font-size: 13px; }
+.v-rapport .valeur { font-variant-numeric: tabular-nums; font-size: 14px; }
 .v-rapport .valeur.ambre { color: var(--ambre); } .v-rapport .valeur.vert { color: var(--vert-texte); }
 .v-rapport-actions { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; }
 .v-atouts { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px 28px; }
@@ -142,11 +142,11 @@
 .v-tarif.vedette { background: var(--surface); border: 2px solid var(--vert); box-shadow: 0 20px 40px -24px rgba(14, 122, 80, .35); }
 .v-tarif-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 26px; }
 .v-tarif-tete h3 { font-size: 18px; margin: 0; }
-.v-etiquette { font-size: 12px; font-weight: 600; color: var(--sur-vert); background: var(--vert); padding: 3px 10px; border-radius: 999px; }
+.v-etiquette { font-size: 13px; font-weight: 600; color: var(--sur-vert); background: var(--vert); padding: 3px 10px; border-radius: 999px; }
 .v-pour { font-size: 14px; color: var(--pale); margin-top: 4px; }
 .v-prix { margin-top: 20px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .v-prix strong { font-family: var(--titre); font-size: 36px; white-space: nowrap; }
-.v-prix span, .v-note { font-size: 13px; color: var(--pale); }
+.v-prix span, .v-note { font-size: 14px; color: var(--pale); }
 .v-note { margin-top: 2px; min-height: 20px; }
 .v-tarif ul { margin: 20px 0 24px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px; font-size: 14px; flex: 1; }
 .v-tarif .bouton { width: 100%; }
@@ -173,7 +173,7 @@
 .v-final .bouton.secondaire { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .55); }
 .v-final .bouton.secondaire:hover { background: rgba(255, 255, 255, .1); }
 .v-pied { border-top: 1px solid var(--bord); background: var(--surface); }
-.v-pied .v-cadre { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; padding-block: 24px; font-size: 13px; color: var(--pale); }
+.v-pied .v-cadre { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; padding-block: 24px; font-size: 14px; color: var(--pale); }
 .v-pied nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .v-pied a { color: var(--doux); text-decoration: none; }
 .v-pied a:hover { color: var(--texte); }
