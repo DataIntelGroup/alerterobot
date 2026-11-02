@@ -10,15 +10,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const admin = await gardeAdmin();
   return (
     <div className="coque">
-      <aside className="menu">
+      <header className="barre-haut">
         <Logo />
-        <p className="pale">Administration de la plateforme</p>
         <OngletsAdmin />
-        <div className="forfait">
-          <p className="pale">Connecté en tant que {admin.email}</p>
+        <div className="admin-qui">
+          <span className="pale" title={admin.email}>Administration · {admin.email}</span>
           <Link href="/tableau-de-bord">Mon espace client</Link>
         </div>
-      </aside>
+      </header>
       <main className="contenu">{children}</main>
     </div>
   );

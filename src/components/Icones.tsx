@@ -28,3 +28,6 @@ export const Sortie = (p: Props) => <Icone {...p}><path d="M15 4h4v16h-4M10 8l-4
 export const Copier = (p: Props) => <Icone {...p}><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" /></Icone>;
 export const Oeil = (p: Props) => <Icone {...p}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></Icone>;
 export const Bulle =(p: Props) => <Icone {...p}><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z" /></Icone>;
+export const Maison = (p: Props) => <Icone {...p}><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></Icone>;
+export const Points = (p: Props) => <Icone {...p} epaisseur={2.6}><path d="M5 12h.01M12 12h.01M19 12h.01" /></Icone>;
+export const Document = (p: Props) => <Icone {...p}><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 13h6M9 17h6" /></Icone>;

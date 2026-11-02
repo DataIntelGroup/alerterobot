@@ -41,3 +41,8 @@ export const ETATS: Record<string, string> = {
 export const TYPES: Record<string, string> = {
   http: "Site web", mot_cle: "Mot-clé", api: "API", paiement: "Mobile money", heartbeat: "Heartbeat",
 };
+
+/** « vendredi 31 octobre ». */
+export function jourLong(maintenant = new Date()): string {
+  return new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: FUSEAU }).format(maintenant);
+}

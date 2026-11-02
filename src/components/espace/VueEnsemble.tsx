@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Alerte, Cloche, Coche, Plus } from "@/components/Icones";
-import { ETATS, TYPES, dateCourte, duree, heure, ilYA, pourcentage, salutation } from "@/lib/format";
+import { Alerte, Coche, Plus } from "@/components/Icones";
+import { dateCourte, duree, heure, ilYA, jourLong, salutation } from "@/lib/format";
+import { lieuxConfirmes, rapidite, titrePanne, titreResolu } from "@/lib/phrases";
 
 export type Moniteur = {
   id: string; nom: string; type: string; url: string | null; etat: string; etat_depuis: string; derniere_verif: string | null;
@@ -11,8 +12,7 @@ export type Incident = {
   id: string; moniteur_id: string; debut: string; confirme_le: string; fin: string | null; cause: string | null;
   lieux: string; vu_le: string | null; vu_par: string | null; derniere_relance: string | null;
 };
-export type AlerteEnvoyee = { id: string; type: string; canal: string; statut: string; cree_le: string; envoye_le: string | null; moniteur: string };
-export type Point = { heure: string; lieu: string; ms: number };
+export type AlerteEnvoyee = { id: string; type: string; canal: string; statut: string; cree_le: string; envoye_le: string | null; moniteur: string; moniteur_type?: string };
 
 export type DonneesVue = {
   orgNom: string;
@@ -23,252 +23,210 @@ export type DonneesVue = {
   moniteurs: Moniteur[];
   incidents: Incident[];
   alertes: AlerteEnvoyee[];
-  courbe: Point[];
 };
 
 const TRENTE_JOURS = 30 * 86400000;
-const TYPES_ALERTE: Record<string, { texte: string; ton: string }> = {
-  panne: { texte: "Panne", ton: "rouge" }, rappel: { texte: "Rappel", ton: "rouge" }, escalade: { texte: "Escalade", ton: "rouge" },
-  retabli: { texte: "Rétabli", ton: "vert" }, lenteur: { texte: "Lenteur", ton: "ambre" }, ssl: { texte: "Certificat", ton: "ambre" },
-};
-const STATUT_ENVOI: Record<string, string> = { envoyee: "remis", echec: "échec", a_envoyer: "en attente", envoi: "en cours", ignoree: "annulé" };
+const MAX_LISTE = 6;
 
-function phraseSante(d: DonneesVue, ouverts: Incident[]): { texte: string; classe: string } {
-  const lents = d.moniteurs.filter((m) => m.etat === "lent").length;
-  const derniere = d.moniteurs.map((m) => m.derniere_verif ?? m.dernier_signal).filter((x): x is string => Boolean(x)).sort().at(-1);
-  if (ouverts.length) {
-    return { texte: `${ouverts.length} service${ouverts.length > 1 ? "s" : ""} en panne. Vos contacts ont été prévenus.`, classe: "alerte-sante" };
-  }
-  if (!d.moniteurs.length) return { texte: "Ajoutez une première adresse : la surveillance démarre dans la minute.", classe: "lent-sante" };
-  if (!derniere) return { texte: "Première vérification en cours, depuis Abidjan et Paris…", classe: "lent-sante" };
-  if (lents) return { texte: `Tout répond, mais ${lents} service${lents > 1 ? "s sont lents" : " est lent"}. Dernière vérification ${ilYA(derniere, d.maintenant)}.`, classe: "lent-sante" };
-  return { texte: `Tout fonctionne. Dernière vérification ${ilYA(derniere, d.maintenant)}.`, classe: "" };
+/** La grande phrase du haut : ce qu'il faut savoir en une lecture. */
+function titreDuJour(d: DonneesVue, ouverts: Incident[]): { titre: string; sous: string } {
+  const actifs = d.moniteurs.filter((m) => m.actif !== false);
+  const lents = actifs.filter((m) => m.etat === "lent");
+  const derniere = actifs.map((m) => m.derniere_verif ?? m.dernier_signal).filter((x): x is string => Boolean(x)).sort().at(-1);
+  const suivi = `${actifs.length} service${actifs.length > 1 ? "s" : ""} surveillé${actifs.length > 1 ? "s" : ""} depuis Abidjan et Paris`;
+  const sous = derniere ? `${suivi} · dernière vérification ${ilYA(derniere, d.maintenant)}` : suivi;
+  const nonVus = ouverts.filter((i) => !i.vu_le);
+  if (!d.moniteurs.length) return { titre: "Bienvenue. Commençons par votre premier service.", sous: "Collez l'adresse d'un site, d'une API ou d'une page de paiement : la surveillance démarre dans la minute." };
+  if (nonVus.length === 1) return { titre: `Une chose demande votre attention.${actifs.length > 1 ? " Le reste fonctionne." : ""}`, sous };
+  if (nonVus.length > 1) return { titre: `${nonVus.length} services demandent votre attention.`, sous };
+  if (ouverts.length) return { titre: "La panne est prise en charge. Nous vous prévenons dès que c'est réparé.", sous };
+  if (!derniere) return { titre: "Première vérification en cours…", sous: "Les résultats arrivent dans une minute environ." };
+  if (lents.length === 1) return { titre: `Tout répond, mais ${lents[0].nom} est lent.`, sous };
+  if (lents.length > 1) return { titre: `Tout répond, mais ${lents.length} services sont lents.`, sous };
+  return { titre: "Tout fonctionne. Vous pouvez souffler.", sous };
 }
 
-function Courbe({ points, maintenant }: { points: Point[]; maintenant: number }) {
-  // 24 créneaux d'une heure, deux barres par créneau (Abidjan, Paris).
-  const debut = Math.floor(maintenant / 3600000) * 3600000 - 23 * 3600000;
-  const max = Math.max(500, ...points.map((p) => p.ms));
-  const parCreneau = new Map(points.map((p) => [`${new Date(p.heure).getTime()}|${p.lieu}`, p.ms]));
-  const barres = Array.from({ length: 24 }, (_, i) => {
-    const t = debut + i * 3600000;
-    return { i, a: parCreneau.get(`${t}|abidjan`) ?? 0, p: parCreneau.get(`${t}|paris`) ?? 0 };
-  });
-  const h = (ms: number) => Math.round((ms / max) * 116);
-  const moyenne = points.filter((p) => p.lieu === "abidjan");
-  const moy = moyenne.length ? Math.round(moyenne.reduce((s, p) => s + p.ms, 0) / moyenne.length) : null;
-  return (
-    <>
-      <svg className="courbe" viewBox="0 0 240 120" preserveAspectRatio="none" role="img"
-        aria-label={moy ? `Temps de réponse moyen sur 24 h : ${moy} ms depuis Abidjan` : "Pas encore de mesure sur 24 h"}>
-        {barres.map((b) => (
-          <g key={b.i}>
-            {b.a > 0 && <rect x={b.i * 10 + 1} y={120 - h(b.a)} width="4" height={h(b.a)} rx="1" fill="#22a06b" />}
-            {b.p > 0 && <rect x={b.i * 10 + 5} y={120 - h(b.p)} width="4" height={h(b.p)} rx="1" fill="#8a9bbe" />}
-          </g>
-        ))}
-      </svg>
-      <div className="axe"><span>{heure(new Date(debut).toISOString())}</span><span>{heure(new Date(debut + 12 * 3600000).toISOString())}</span><span>maintenant</span></div>
-    </>
-  );
+/** Les dernières alertes, une phrase par événement (l'email et la notification d'un même événement ne comptent qu'une fois). */
+function nouvelles(alertes: AlerteEnvoyee[]) {
+  const vues = new Map<string, { quand: string; texte: string; ton: string; canaux: Set<string> }>();
+  for (const a of alertes) {
+    const quand = a.envoye_le ?? a.cree_le;
+    const cle = `${a.type}|${a.moniteur}|${quand.slice(0, 16)}`;
+    const deja = vues.get(cle);
+    if (deja) { deja.canaux.add(a.canal); continue; }
+    const type = a.moniteur_type ?? "http";
+    const phrase: Record<string, [string, string]> = {
+      panne: [`${titrePanne(type, a.moniteur)}.`, "rouge"],
+      rappel: [`Rappel : ${a.moniteur} est toujours en panne.`, "rouge"],
+      escalade: [`Personne n'avait répondu : la personne suivante a été prévenue pour ${a.moniteur}.`, "rouge"],
+      retabli: [`${titreResolu(type, a.moniteur)}.`, "vert"],
+      lenteur: [`${a.moniteur} répond lentement.`, "ambre"],
+      ssl: [`Le certificat de ${a.moniteur} expire bientôt.`, "ambre"],
+      domaine: [`Le nom de domaine de ${a.moniteur} expire bientôt.`, "ambre"],
+    };
+    const [texte, ton] = phrase[a.type] ?? [`${a.moniteur} : ${a.type}.`, "gris"];
+    vues.set(cle, { quand, texte, ton, canaux: new Set([a.canal]) });
+  }
+  return [...vues.values()].slice(0, 6);
+}
+
+function etatCourt(m: Moniteur, maintenant: number): { texte: string; ton: string } {
+  if (m.actif === false) return { texte: "En pause, aucune vérification", ton: "gris" };
+  if (m.etat === "lent" && m.dernier_ms !== null) return { texte: `Lent : ${rapidite(m.dernier_ms)} au lieu de moins de ${rapidite(m.seuil_lent_ms)}`, ton: "ambre" };
+  if (m.etat === "suspect") return { texte: "Vérification en cours depuis un second lieu…", ton: "ambre" };
+  if (m.etat === "inconnu") return { texte: "Première vérification en cours", ton: "gris" };
+  if (m.type === "heartbeat") return { texte: m.dernier_signal ? `Dernier signal ${ilYA(m.dernier_signal, maintenant)}` : "En attente du premier signal", ton: "vert" };
+  return { texte: m.dernier_ms !== null ? `Répond en ${rapidite(m.dernier_ms)}` : "Répond normalement", ton: "vert" };
 }
 
 export function VueEnsemble({ d, actionVu }: { d: DonneesVue; actionVu?: (form: FormData) => Promise<void> }) {
   const parId = new Map(d.moniteurs.map((m) => [m.id, m]));
   const ouverts = d.incidents.filter((i) => !i.fin);
-  const sante = phraseSante(d, ouverts);
-  const debut30 = d.maintenant - TRENTE_JOURS;
-  const minutesPanne = d.incidents.reduce((s, i) => s + (new Date(i.fin ?? d.maintenant).getTime() - Math.max(new Date(i.debut).getTime(), debut30)), 0) / 60000;
-  const dispo = d.moniteurs.length ? 100 - (100 * minutesPanne) / ((TRENTE_JOURS / 60000) * d.moniteurs.length) : null;
-  const compte = (e: string) => d.moniteurs.filter((m) => m.etat === e).length;
-  const durees = d.incidents.filter((i) => i.fin).map((i) => new Date(i.fin!).getTime() - new Date(i.debut).getTime()).sort((a, b) => a - b);
-  const mediane = durees.length ? durees[Math.floor(durees.length / 2)] : null;
-  const abidjan = d.courbe.filter((p) => p.lieu === "abidjan");
-  const moyenne = abidjan.length ? Math.round(abidjan.reduce((s, p) => s + p.ms, 0) / abidjan.length) : null;
+  const enPanne = new Set(ouverts.map((i) => i.moniteur_id));
+  const { titre, sous } = titreDuJour(d, ouverts);
+  const reste = d.moniteurs.filter((m) => !enPanne.has(m.id));
+  const tousBien = reste.every((m) => m.actif === false || m.etat === "ok");
   const ssl = d.moniteurs.filter((m) => m.ssl_expire_le && new Date(m.ssl_expire_le).getTime() - d.maintenant < TRENTE_JOURS);
   const domaines = d.moniteurs.filter((m, i, tous) => m.domaine_expire_le && new Date(m.domaine_expire_le).getTime() - d.maintenant < TRENTE_JOURS
     && tous.findIndex((x) => x.domaine === m.domaine) === i);
+  const fil = nouvelles(d.alertes);
   const premiersPas = [
     { fait: true, titre: "Créer votre organisation", texte: "C'est fait." },
-    { fait: d.moniteurs.length > 0, titre: "Ajouter votre première adresse", texte: "Un site, une API ou votre page de paiement.", lien: "/moniteurs/nouveau", action: "Ajouter" },
+    { fait: d.moniteurs.length > 0, titre: "Ajouter votre premier service", texte: "Un site, une API ou votre page de paiement.", lien: "/moniteurs/nouveau", action: "Ajouter" },
     { fait: d.pushActif, titre: "Recevoir les alertes sur ce téléphone", texte: "Sans notification, vous ne serez prévenu que par email.", lien: "/alertes", action: "Activer" },
   ];
   const restants = premiersPas.filter((p) => !p.fait).length;
 
   return (
-    <>
-      <div className="entete salut">
+    <div className="aujourdhui">
+      <div className="jour-tete">
         <div>
-          <h1>{salutation(new Date(d.maintenant))}</h1>
-          <p className={`sante ${sante.classe}`} role="status">{sante.texte}</p>
+          <p className="jour-date">{salutation(new Date(d.maintenant))} · {jourLong(new Date(d.maintenant))}, {heure(new Date(d.maintenant).toISOString())}</p>
+          <h1 className="jour-titre">{titre}</h1>
+          <p className="jour-sous" role="status">{sous}</p>
         </div>
-        {d.ecriture && d.moniteurs.length > 0 && <Link className="bouton" href="/moniteurs/nouveau"><Plus taille={16} />Ajouter un moniteur</Link>}
+        {d.ecriture && d.moniteurs.length > 0 && <Link className="bouton secondaire" href="/moniteurs/nouveau"><Plus taille={16} />Surveiller un service</Link>}
       </div>
 
-      {restants > 0 && d.ecriture && (
-        <section className="premiers-pas" aria-labelledby="titre-premiers-pas">
-          <h2 id="titre-premiers-pas">Encore {restants} étape{restants > 1 ? "s" : ""} pour être prévenu à temps</h2>
-          <p className="doux">Comptez deux minutes. Ensuite, AlerteRobot veille à votre place, jour et nuit.</p>
-          <ol>
-            {premiersPas.map((p, i) => (
-              <li key={p.titre} className={p.fait ? "fait" : undefined}>
-                <span className="rond" aria-hidden="true">{p.fait ? <Coche taille={14} /> : i + 1}</span>
-                <div className="quoi"><strong>{p.titre}</strong><p>{p.fait ? "Fait." : p.texte}</p></div>
-                {!p.fait && p.lien && <Link className="bouton secondaire" href={p.lien}>{p.action}</Link>}
-                {p.fait && <span className="masque">Étape terminée</span>}
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {ouverts.map((i) => {
-        const m = parId.get(i.moniteur_id);
-        const prochainRappel = i.derniere_relance ? new Date(new Date(i.derniere_relance).getTime() + d.rappelMin * 60000).toISOString() : null;
-        return (
-          <section key={i.id} className={`banniere${i.vu_le ? " vue" : ""}`} aria-label={`Incident en cours : ${m?.nom ?? "moniteur"}`}>
-            <span className="ico" aria-hidden="true">{i.vu_le ? <Coche taille={20} /> : <Alerte taille={20} />}</span>
-            <div>
-              <h2>{m?.nom ?? "Un moniteur"} est en panne{m?.client ? ` · ${m.client}` : ""}</h2>
-              <p>
-                {i.vu_le
-                  ? `Pris en charge par ${i.vu_par ?? "un membre"} à ${heure(i.vu_le)}. Les rappels sont arrêtés ; le message de rétablissement partira tout seul.`
-                  : `Ne répond plus depuis ${heure(i.debut)}, soit ${duree(d.maintenant - new Date(i.debut).getTime())}. ${i.cause ? `${i.cause}.` : ""}${i.lieux.includes(",") ? " Confirmé depuis Abidjan et Paris." : ""}`}
-              </p>
-              {!i.vu_le && (
-                <ul className="jalons">
-                  <li><span className="mono">{heure(i.confirme_le)}</span>alerte envoyée</li>
-                  {prochainRappel && <li><span className="mono">{heure(prochainRappel)}</span>prochain rappel si personne ne répond</li>}
-                </ul>
-              )}
-            </div>
-            <div className="actions">
-              {!i.vu_le && d.ecriture && (
-                actionVu ? (
-                  <form action={actionVu}>
-                    <input type="hidden" name="incident" value={i.id} />
-                    <button type="submit" className="bouton secondaire">J&apos;ai vu</button>
-                  </form>
-                ) : <button type="button" className="bouton secondaire" disabled>J&apos;ai vu</button>
-              )}
-              <Link className="bouton danger" href={`/incidents/${i.id}`}>Voir l&apos;incident</Link>
-            </div>
-          </section>
-        );
-      })}
-
-      {d.moniteurs.length > 0 && (
-        <div className="grille-kpi">
-          <div className="carte">
-            <p className="pale">Disponibilité · 30 jours</p>
-            <p className="kpi-valeur">{dispo !== null ? pourcentage(Math.max(0, dispo)) : "—"}</p>
-            <p className="pale">{minutesPanne >= 1 ? `${duree(minutesPanne * 60000)} de panne au total` : "aucune panne ce mois-ci"}</p>
-          </div>
-          <div className="carte">
-            <p className="pale">Moniteurs</p>
-            <p className="kpi-valeur">{d.moniteurs.length}</p>
-            <p className="pale"><span className="vert-txt">{compte("ok")} en ligne</span>{compte("lent") > 0 && <> · <span className="ambre-txt">{compte("lent")} lent{compte("lent") > 1 ? "s" : ""}</span></>}{compte("panne") > 0 && <> · <span className="rouge-txt">{compte("panne")} en panne</span></>}</p>
-          </div>
-          <div className="carte">
-            <p className="pale">Temps de réponse moyen</p>
-            <p className="kpi-valeur">{moyenne !== null ? `${moyenne} ms` : "—"}</p>
-            <p className="pale">depuis Abidjan · 24 h</p>
-          </div>
-          <div className="carte">
-            <p className="pale">Incidents · 30 jours</p>
-            <p className="kpi-valeur">{d.incidents.length}</p>
-            <p className="pale">{mediane !== null ? `durée médiane ${duree(mediane)}` : "rien à signaler"}</p>
-          </div>
-        </div>
-      )}
-
-      <div className="deux-colonnes">
-        <section className="carte principale" aria-labelledby="titre-moniteurs">
-          <div className="carte-tete"><h2 id="titre-moniteurs">Moniteurs</h2>{d.moniteurs.length > 0 && <span className="pale">vérifiés toutes les 1 à 5 min</span>}</div>
-          {d.moniteurs.length === 0 ? (
-            <div className="vide">
-              <strong>Rien à surveiller pour l&apos;instant</strong>
-              <p>Collez l&apos;adresse de votre site, de votre API ou de votre page de paiement. La première vérification part dans la minute.</p>
-              {d.ecriture && <Link className="bouton" href="/moniteurs/nouveau"><Plus taille={16} />Ajouter ma première adresse</Link>}
-            </div>
-          ) : (
-            <div className="table-boite">
-              <table>
-                <thead><tr><th scope="col">Moniteur</th><th scope="col">Client</th><th scope="col">Type</th><th scope="col">État</th><th scope="col" className="droite">Réponse</th></tr></thead>
-                <tbody>
-                  {d.moniteurs.map((m) => {
-                    const sslProche = m.ssl_expire_le && new Date(m.ssl_expire_le).getTime() - d.maintenant < TRENTE_JOURS;
-                    const verif = m.derniere_verif ?? m.dernier_signal;
-                    const pause = m.actif === false;
-                    return (
-                      <tr key={m.id} className={m.etat === "panne" && !pause ? "en-panne" : undefined}>
-                        <td className="col-moniteur"><Link className="lien-ligne" href={`/moniteurs/${m.id}`}>{m.nom}</Link><span className="pale">{m.url ?? (m.dernier_signal ? `dernier signal ${ilYA(m.dernier_signal, d.maintenant)}` : "en attente du premier signal")}</span></td>
-                        <td className="nowrap">{m.client ?? "—"}</td>
-                        <td className="nowrap">{TYPES[m.type] ?? m.type}</td>
-                        <td>
-                          <span className={`etat etat-${pause ? "inconnu" : m.etat}`}>{pause ? "En pause" : ETATS[m.etat] ?? m.etat}</span>
-                          <span className="pale">
-                            {pause ? "aucune vérification" : m.etat === "panne" || m.etat === "lent" ? `depuis ${duree(d.maintenant - new Date(m.etat_depuis).getTime())}` : verif ? `vérifié ${ilYA(verif, d.maintenant)}` : "jamais vérifié"}
-                            {sslProche && m.ssl_expire_le ? ` · SSL expire le ${dateCourte(m.ssl_expire_le)}` : ""}
-                          </span>
-                        </td>
-                        <td className={`mono nowrap droite ${m.dernier_ms !== null && m.dernier_ms > m.seuil_lent_ms ? "ambre-txt" : ""}`}>
-                          {m.etat === "panne" || m.dernier_ms === null ? "—" : m.dernier_ms >= 1000 ? `${(m.dernier_ms / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} s` : `${m.dernier_ms} ms`}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <div className="laterale">
-          {d.moniteurs.length > 0 && (
-            <section className="carte" aria-labelledby="titre-courbe">
-              <div className="carte-tete"><h2 id="titre-courbe">Temps de réponse</h2><span className="pale">24 h</span></div>
-              <div className="legende"><span><i />Abidjan</span><span><i className="paris" />Paris</span></div>
-              <Courbe points={d.courbe} maintenant={d.maintenant} />
+      <div className="jour-grille">
+        <div className="jour-principal">
+          {restants > 0 && d.ecriture && (
+            <section className="premiers-pas" aria-labelledby="titre-premiers-pas">
+              <h2 id="titre-premiers-pas">Encore {restants} étape{restants > 1 ? "s" : ""} pour être prévenu à temps</h2>
+              <p className="doux">Comptez deux minutes. Ensuite, AlerteRobot veille à votre place, jour et nuit.</p>
+              <ol>
+                {premiersPas.map((p, i) => (
+                  <li key={p.titre} className={p.fait ? "fait" : undefined}>
+                    <span className="rond" aria-hidden="true">{p.fait ? <Coche taille={14} /> : i + 1}</span>
+                    <div className="quoi"><strong>{p.titre}</strong><p>{p.fait ? "Fait." : p.texte}</p></div>
+                    {!p.fait && p.lien && <Link className="bouton" href={p.lien}>{p.action}</Link>}
+                    {p.fait && <span className="masque">Étape terminée</span>}
+                  </li>
+                ))}
+              </ol>
             </section>
           )}
 
-          <section className="carte" aria-labelledby="titre-prevoir">
-            <h2 id="titre-prevoir" className="carte-tete">À prévoir</h2>
-            {ssl.length + domaines.length === 0 ? <p className="pale">Rien à signaler pour les 30 prochains jours.</p> : (
-              <ul className="liste-points">
-                {domaines.map((m) => (
-                  <li key={`d-${m.id}`} className="rouge"><div><strong>Nom de domaine · {m.domaine}</strong><p className="pale">Expire le {dateCourte(m.domaine_expire_le!)} : renouvelez-le chez votre registraire.</p></div></li>
-                ))}
-                {ssl.map((m) => (
-                  <li key={m.id} className="ambre"><div><strong>Certificat · {m.nom}</strong><p className="pale">Expire le {dateCourte(m.ssl_expire_le!)} : pensez au renouvellement.</p></div></li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {ouverts.map((i) => {
+            const m = parId.get(i.moniteur_id);
+            const nom = m?.nom ?? "Un service";
+            const prochainRappel = i.derniere_relance ? new Date(new Date(i.derniere_relance).getTime() + d.rappelMin * 60000).toISOString() : null;
+            const lieux = lieuxConfirmes(i.lieux);
+            return (
+              <article key={i.id} className={`panne-carte${i.vu_le ? " vue" : ""}`} aria-label={`Incident en cours : ${nom}`}>
+                <span className="panne-pastille">
+                  <i aria-hidden="true" />{i.vu_le ? `Pris en charge par ${i.vu_par ?? "un membre"}` : `En panne depuis ${duree(d.maintenant - new Date(i.debut).getTime())}`}
+                </span>
+                <h2>{titrePanne(m?.type ?? "http", nom)}</h2>
+                <p>
+                  {m?.client ? `${m.client}. ` : ""}{lieux ? `${lieux} ` : ""}{i.cause ? `Ce que nous avons reçu : ${i.cause.toLowerCase()}.` : ""}
+                </p>
+                <dl className="panne-faits">
+                  <div><dt>Début</dt><dd>{heure(i.debut)}</dd></div>
+                  <div><dt>Alerte envoyée</dt><dd>{heure(i.confirme_le)}</dd></div>
+                  {i.vu_le
+                    ? <div><dt>Pris en charge</dt><dd>{heure(i.vu_le)}, rappels arrêtés</dd></div>
+                    : prochainRappel && <div><dt>Sans réponse</dt><dd>nouveau rappel à {heure(prochainRappel)}</dd></div>}
+                </dl>
+                <div className="panne-actions">
+                  {!i.vu_le && d.ecriture && (
+                    actionVu ? (
+                      <form action={actionVu}>
+                        <input type="hidden" name="incident" value={i.id} />
+                        <button type="submit" className="bouton">Je m&apos;en occupe</button>
+                      </form>
+                    ) : <button type="button" className="bouton" disabled>Je m&apos;en occupe</button>
+                  )}
+                  {d.ecriture && <Link className="bouton secondaire" href={`/incidents/${i.id}#informer`}>Prévenir mes clients</Link>}
+                  <Link className="bouton secondaire" href={`/incidents/${i.id}`}>Voir le détail</Link>
+                </div>
+              </article>
+            );
+          })}
 
-          <section className="carte" aria-labelledby="titre-alertes">
-            <h2 id="titre-alertes" className="carte-tete">Dernières alertes</h2>
-            {d.alertes.length === 0 ? (
-              <p className="pale">Aucune alerte envoyée. {d.pushActif ? "" : <Link href="/alertes">Activez les notifications</Link>}</p>
-            ) : (
-              <ul className="liste-points">
-                {d.alertes.map((a) => {
-                  const t = TYPES_ALERTE[a.type] ?? { texte: a.type, ton: "gris" };
+          {d.moniteurs.length > 0 && (
+            <section className="fil" aria-labelledby="titre-fil">
+              <h2 id="titre-fil">Dernières nouvelles</h2>
+              {fil.length === 0 ? <p className="pale">Rien à signaler pour l&apos;instant. Nous vous écrirons au moindre souci.</p> : (
+                <ol>
+                  {fil.map((n) => (
+                    <li key={`${n.quand}${n.texte}`} className={n.ton}>
+                      <time dateTime={n.quand}>{new Date(d.maintenant).toDateString() === new Date(n.quand).toDateString() ? heure(n.quand) : dateCourte(n.quand)}</time>
+                      <p>{n.texte} <span className="pale">Prévenu par {[...n.canaux].map((c) => c === "push" ? "notification" : c === "email" ? "email" : c).join(" et ")}.</span></p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {!d.pushActif && <p className="pale">Les notifications ne sont pas activées sur cet appareil. <Link href="/alertes">Les activer</Link></p>}
+            </section>
+          )}
+
+          {d.moniteurs.length === 0 && d.ecriture && (
+            <section className="vide-accueil">
+              <strong>Rien à surveiller pour l&apos;instant</strong>
+              <p>Collez l&apos;adresse de votre site, de votre API ou de votre page de paiement. La première vérification part dans la minute.</p>
+              <Link className="bouton" href="/moniteurs/nouveau"><Plus taille={16} />Ajouter mon premier service</Link>
+            </section>
+          )}
+        </div>
+
+        {d.moniteurs.length > 0 && (
+          <aside className="jour-cote">
+            <section className="bloc-doux" aria-labelledby="titre-reste">
+              <h2 id="titre-reste">{ouverts.length ? (tousBien ? "Le reste va bien" : "Vos autres services") : "Vos services"}</h2>
+              <p className="pale">{reste.length} service{reste.length > 1 ? "s" : ""} vérifié{reste.length > 1 ? "s" : ""} toutes les 1 à 5 min</p>
+              <ul className="services-courts">
+                {reste.slice(0, MAX_LISTE).map((m) => {
+                  const e = etatCourt(m, d.maintenant);
                   return (
-                    <li key={a.id} className={t.ton}>
-                      <div>
-                        <strong>{t.texte}</strong> · {a.moniteur}
-                        <p className="pale">{heure(a.envoye_le ?? a.cree_le)} · {a.canal === "push" ? <><Cloche taille={12} /> push</> : "email"} {STATUT_ENVOI[a.statut] ?? a.statut}</p>
-                      </div>
+                    <li key={m.id} className={e.ton}>
+                      <span className="ico" aria-hidden="true">{e.ton === "vert" ? <Coche taille={14} /> : e.ton === "ambre" ? <Alerte taille={14} /> : "–"}</span>
+                      <Link href={`/moniteurs/${m.id}`}><strong>{m.nom}</strong><span>{e.texte}</span></Link>
                     </li>
                   );
                 })}
               </ul>
+              <Link className="lien-suite" href="/moniteurs">{reste.length > MAX_LISTE ? `Voir les ${reste.length - MAX_LISTE} autres` : "Voir le détail de mes services"} →</Link>
+            </section>
+
+            {ssl.length + domaines.length > 0 ? (
+              <section className="a-prevoir" aria-labelledby="titre-prevoir">
+                <h2 id="titre-prevoir">À prévoir</h2>
+                <ul>
+                  {domaines.map((m) => (
+                    <li key={`d-${m.id}`}>Votre nom de domaine <strong>{m.domaine}</strong> expire le {dateCourte(m.domaine_expire_le!)}. Renouvelez-le chez votre registraire, sinon le site disparaît.</li>
+                  ))}
+                  {ssl.map((m) => (
+                    <li key={m.id}>Le certificat de <strong>{m.nom}</strong> expire le {dateCourte(m.ssl_expire_le!)}. Sans lui, les navigateurs afficheront « site non sécurisé ».</li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
+              <p className="rien-prevoir"><Coche taille={14} /> Aucun certificat ni nom de domaine n&apos;expire dans les 30 prochains jours.</p>
             )}
-          </section>
-        </div>
+          </aside>
+        )}
       </div>
-    </>
+    </div>
   );
 }

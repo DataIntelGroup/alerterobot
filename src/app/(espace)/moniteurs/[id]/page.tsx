@@ -37,7 +37,7 @@ export default async function PageMoniteur({ params }: { params: Promise<{ id: s
 
   return (
     <div className="etroit pile">
-      <Link className="retour" href="/tableau-de-bord">← Vue d&apos;ensemble</Link>
+      <Link className="retour" href="/moniteurs">← Mes services</Link>
       <div className="entete">
         <div>
           <p className={`etat etat-${etat === "pause" ? "inconnu" : etat}`}>{etat === "pause" ? "En pause" : ETATS[etat] ?? etat}{etat !== "pause" && etat !== "inconnu" ? ` depuis ${duree(maintenant - new Date(m.etat_depuis).getTime())}` : ""}</p>

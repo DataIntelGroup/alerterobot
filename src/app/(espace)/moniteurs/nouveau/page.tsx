@@ -16,7 +16,7 @@ export default async function NouveauMoniteur({ searchParams }: { searchParams: 
   const appUrl = (process.env.APP_URL ?? "http://localhost:3500").replace(/\/$/, "");
   return (
     <div className="etroit pile">
-      {!bienvenue && <Link className="retour" href="/tableau-de-bord">← Vue d&apos;ensemble</Link>}
+      {!bienvenue && <Link className="retour" href="/tableau-de-bord">← Aujourd&apos;hui</Link>}
       <div>
         {bienvenue && <p className="pale">Étape 3 sur 3</p>}
         <h1>{bienvenue ? "Que voulez-vous surveiller en premier ?" : "Ajouter un moniteur"}</h1>
